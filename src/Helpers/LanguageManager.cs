@@ -7,6 +7,7 @@ using System.Threading;
 using DLSS_Swapper.Attributes;
 
 namespace DLSS_Swapper.Helpers;
+
 public class LanguageManager
 {
     public event Action? OnLanguageChanged;
@@ -105,6 +106,80 @@ public class LanguageManager
         };
     }
 
+    /// <summary>
+    /// Gets the name of the language in English.
+    /// </summary>
+    /// <param name="languageKey">The language key, e.g. "en-US".</param>
+    /// <returns>The name without a region qualifier, e.g. "English" instead of "English (United States)".</returns>
+    public string GetEnglishLanguageName(string languageKey)
+    {
+        try
+        {
+            return StripRegionQualifier(CultureInfo.GetCultureInfo(languageKey).EnglishName);
+        }
+        catch (CultureNotFoundException)
+        {
+            // Not a valid culture, e.g. LANG_HUNT.
+            return languageKey;
+        }
+    }
+
+    /// <summary>
+    /// Gets the name of the language as it would be displayed in the calling thread's UI culture.
+    /// </summary>
+    /// <param name="languageKey">The language key, e.g. "en-US".</param>
+    /// <returns>
+    /// The name in the calling thread's UI culture without a region qualifier,
+    /// e.g. "Englisch" when the UI culture is "de-DE".
+    /// </returns>
+    public string GetLanguageNameInCurrentLanguage(string languageKey)
+    {
+        try
+        {
+            return StripRegionQualifier(CultureInfo.GetCultureInfo(languageKey).DisplayName);
+        }
+        catch (CultureNotFoundException)
+        {
+            // Not a valid culture, e.g. LANG_HUNT.
+            return languageKey;
+        }
+    }
+
+    /// <summary>
+    /// Determines whether two language keys refer to the same language, ignoring the region.
+    /// </summary>
+    /// <param name="languageKeyA">The first language key, e.g. "en-GB".</param>
+    /// <param name="languageKeyB">The second language key, e.g. "en-US".</param>
+    /// <returns>True if both keys refer to the same language, e.g. "en-GB" and "en-US" are both English.</returns>
+    public static bool IsSameLanguage(string languageKeyA, string languageKeyB)
+    {
+        return GetLanguagePart(languageKeyA).Equals(GetLanguagePart(languageKeyB), StringComparison.OrdinalIgnoreCase);
+    }
+
+    static ReadOnlySpan<char> GetLanguagePart(ReadOnlySpan<char> languageKey)
+    {
+        Span<Range> ranges = stackalloc Range[2];
+        int partCount = languageKey.Split(ranges, "-");
+        if (partCount < 1)
+        {
+            return languageKey;
+        }
+
+        return languageKey[ranges[0]];
+    }
+
+    static string StripRegionQualifier(string name)
+    {
+        // "English (United States)" -> "English"
+        int index = name.IndexOf(" (", StringComparison.Ordinal);
+        if (index > 0)
+        {
+            return name[..index];
+        }
+
+        return name;
+    }
+
     public static IEnumerable<string> GetClassLanguagePropertyNames(Type classType)
     {
         return classType.GetProperties().Where(p => p.GetCustomAttribute<TranslationPropertyAttribute>() != null).Select(p => p.Name).ToList();
@@ -162,4 +237,3 @@ public class LanguageManager
         return rtlLanguages.Contains(languagePart);
     }
 }
-

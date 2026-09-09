@@ -56,10 +56,10 @@ public partial class SettingsPageModel : ObservableObject
     [ObservableProperty]
     public partial PresetOption? SelectedGlobalDlssGPreset { get; set; }
 
-    public ObservableCollection<KeyValuePair<string, string>> Languages { get; init; } = new ObservableCollection<KeyValuePair<string, string>>();
+    public ObservableCollection<LanguageOption> Languages { get; init; } = new ObservableCollection<LanguageOption>();
 
     [ObservableProperty]
-    public partial KeyValuePair<string, string> SelectedLanguage { get; set; }
+    public partial LanguageOption? SelectedLanguage { get; set; }
 
     [ObservableProperty]
     public partial bool LightThemeSelected { get; set; } = false;
@@ -131,17 +131,23 @@ public partial class SettingsPageModel : ObservableObject
             {
                 dlssPresetOption.UpdateNameFromTranslation();
             }
+
+            var currentLanguage = Settings.Instance.Language;
+            foreach (var language in Languages)
+            {
+                language.UpdateForCurrentLanguage(currentLanguage);
+            }
         };
 
+        var currentLanguage = Settings.Instance.Language;
         var knownLanguages = LanguageManager.Instance.GetKnownLanguages();
         foreach (var knownLanguage in knownLanguages)
         {
-            var languageName = LanguageManager.Instance.GetLanguageName(knownLanguage);
-            Languages.Add(new KeyValuePair<string, string>(knownLanguage, languageName));
+            Languages.Add(new LanguageOption(knownLanguage, currentLanguage));
         }
 
         //work with selected language state
-        SelectedLanguage = Languages.FirstOrDefault(x => x.Key == Settings.Instance.Language);
+        SelectedLanguage = Languages.FirstOrDefault(x => x.Id == currentLanguage);
 
         _dlssSettingsManager = new DLSSSettingsManager();
         LightThemeSelected = Settings.Instance.AppTheme == ElementTheme.Light;
@@ -241,8 +247,11 @@ public partial class SettingsPageModel : ObservableObject
 
         if (e.PropertyName == nameof(SelectedLanguage))
         {
-            Settings.Instance.Language = SelectedLanguage.Key;
-            LanguageManager.Instance.ChangeLanguage(SelectedLanguage.Key);
+            if (SelectedLanguage is { } lang)
+            {
+                Settings.Instance.Language = lang.Id;
+                LanguageManager.Instance.ChangeLanguage(lang.Id);
+            }
         }
         else if (e.PropertyName == nameof(LightThemeSelected))
         {

@@ -18,6 +18,7 @@
         <ct_converters:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter" TrueValue="Visible" FalseValue="Collapsed" />
         <ct_converters:BoolToVisibilityConverter x:Key="BoolToNegationVisibilityConverter"  TrueValue="Collapsed" FalseValue="Visible" />
         <ct_converters:BoolNegationConverter x:Key="BoolNegationConverter" />
+        <converters:NullToVisibilityConverter x:Key="NullToVisibilityConverter" />
     </Page.Resources>
     <Grid>
 
@@ -203,7 +204,20 @@
                     Margin="0,40,0,0"
                     Text="{x:Bind ViewModel.TranslationProperties.LanguageText, Mode=OneWay}" />
                 <StackPanel Margin="0,10,0,0" Spacing="8">
-                    <ComboBox x:Name="LanguageComboBox" ItemsSource="{x:Bind ViewModel.Languages}" DisplayMemberPath="Value" SelectedItem="{x:Bind ViewModel.SelectedLanguage, Mode=TwoWay}" />
+                    <ComboBox x:Name="LanguageComboBox" ItemsSource="{x:Bind ViewModel.Languages}" SelectedItem="{x:Bind ViewModel.SelectedLanguage, Mode=TwoWay}">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate x:DataType="helpers:LanguageOption">
+                                <StackPanel Orientation="Vertical">
+                                    <TextBlock Text="{x:Bind NativeName, Mode=OneWay}" FontWeight="SemiBold" />
+                                    <TextBlock Text="{x:Bind EnglishName, Mode=OneWay}" Style="{ThemeResource CaptionTextBlockStyle}" />
+                                    <!-- Null and collapsed when it just repeats the native or English name. -->
+                                    <TextBlock Text="{x:Bind NameInCurrentLanguage, FallbackValue='', Mode=OneWay}"
+                                               Visibility="{x:Bind NameInCurrentLanguage, Converter={StaticResource NullToVisibilityConverter}, Mode=OneWay}"
+                                               Style="{ThemeResource CaptionTextBlockStyle}" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
                     <Button Content="{x:Bind ViewModel.TranslationProperties.OpenTranslationToolboxText, Mode=OneWay}" Command="{x:Bind ViewModel.OpenTranslationToolboxCommand}" />
                 </StackPanel>
 
